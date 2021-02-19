@@ -1,39 +1,59 @@
 var express = require('express');
 var router = express.Router();
+const mongoose = require('mongoose')
+const User = require('../models/User')
+const db = mongoose.connection
 
-/* GET users listing. */
+
+router.post('/signin', function (req, res) {
+  User.findOne({ username: req.body.username }, function (err, user) {
+    if (err) res.status(500).send('!Error comprobando al usuario!')
+    if (user != null) {
+      user.comparePassword(req.body.password, function (err, isMatch) {
+        if (isMatch) res.status(200).send({ message: 'ok', role: user.role, id: user._id })
+        else res.status(200).send({ message: 'ko' })
+      })
+    } else {
+      res.status(404).send({ message: 'ko' })
+    }
+  })
+})
+
 router.get('/', function (req, res, next) {
-  res.json({
-    users: [
-      { id: 123, name: 'Eladio  Guardiola', phones: {} }
-    ]
-  });
+  User.find().sort('-creationdate').exec(function (err, users) {
+    if (err) res.status(500).send(err)
+    else res.status(200).json(users)
+  })
+
 });
 
-router.get('/:id',function (req,res){
-  if(req.params.id == "123"){
-    res.json({ id: 123, name: 'Eladio  Guardiola', phones: {} })
-  }else {
-    res.status(404).send('¡Lo siento el item no fue encontrado!')
-  }
+router.get('/:id', function (req, res) {
+  User.findById(req.params.id, function (err, userInfo) {
+    if (err) res.status(500).send(err)
+    else res.status(200).json(userInfo)
+  })
+
 })
 
-router.post('/',(req,res)=>{
-  const new_user = req.body
-  res.status(200).send('Usuario' + new_user.name + ' ha sido añadido satisfactoriamente')
+router.post('/', (req, res) => {
+  User.create(req.body, function (err, userInfo) {
+    if (err) res.status(500).send(err)
+    else res.sendStatus(200)
+  })
 })
 
-router.put('/:id',function (req,res) {
-  const updated_user = req.body
-  res.status(200).send('Usuario' + updated_user.name + 'ha sido actualizado satisfactoriamente')
-  
+router.put('/:id', function (req, res) {
+  User.findByIdAndUpdate(req.params.id, req.body, function (err, userInfo) {
+    if (err) res.status(500).send(err)
+    else res.sendStatus(200)
+  })
 })
 
 
-router.delete('/:id',function (req,res) {
-  
-  res.status(200)
-  .send('Usuario' + req.params.id + 'ha sido eliminado satisfactoriamente')
-  
+router.delete('/:id', function (req, res) {
+  User.findByIdAndDelete(req.params.id, function (err, userInfo) {
+    if (err) res.status(500).send(err)
+    else res.sendStatus(200)
+  })
 })
 module.exports = router;
